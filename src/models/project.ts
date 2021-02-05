@@ -12,7 +12,7 @@ enum PackageManager {
 }
 
 export default interface Project {
-    id: number;
+    _id?: string;
     name: string;
     type: ProjectType;
     pm: PackageManager;

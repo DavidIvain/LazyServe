@@ -2,14 +2,15 @@ import React, { useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import gfm from "remark-gfm";
 import {remote} from "electron";
-//@ts-ignore
 import {Prism as SyntaxHighlighter} from "react-syntax-highlighter";
-//@ts-ignore
 import {vscDarkPlus} from "react-syntax-highlighter/dist/esm/styles/prism";
 import fs from "fs";
+import Datastore from "nedb";
 
 import Project, {ProjectType, PackageManager} from "../models/project";
+
 const dialog = remote.dialog;
+const projectsDb = remote.getGlobal('projectsDb') as Datastore<Project>;
 
 const Root: React.FC = function() {
     const [maximized, setMaximized] = useState<boolean>(false);
@@ -19,8 +20,17 @@ const Root: React.FC = function() {
     const projCount = useRef(0);
 
     useEffect(() => {
-        if(projects.length > 0 && projects.length > projCount.current) selectProject(projects.length -1);
+        if(projects.length > 0 && projects.length > projCount.current) {
+            selectProject(projects[projects.length -1]._id);
+        }
     }, [projects]);
+
+    useEffect(() => {
+        projectsDb.find({}, function(err: Error | null, docs: Project[]) {
+            projCount.current = docs.length;
+            setProjects(docs);
+        });
+    }, []);
     
     const renderers = {
         code: (props: {language: any, value: any}) => {
@@ -43,21 +53,26 @@ const Root: React.FC = function() {
         await dialog.showOpenDialog(remote.getCurrentWindow(), {properties: ["openDirectory"], message: "Select a node project folder"}).then((path) => {
             const splitPath = path.filePaths[0].split("/");
             const newProject = {
-                id: projects.length,
                 name: splitPath[splitPath.length-1],
                 pm: PackageManager.Unset,
                 type: ProjectType.Other,
                 path: path.filePaths[0]
             };
             projCount.current = projects.length;
-            setProjects([
-                ...projects,
-                newProject]);
+            projectsDb.insert(newProject, function(err: Error, project: Project) {
+                console.log(project);
+                if(!err) {
+                    setProjects([
+                        ...projects,
+                        project]);
+                }
+            });
         });
     }
 
     async function removeProject(index: number) {
         if(index == selected) unselectProject();
+        projectsDb.remove({_id: projects[index]._id});
         projects.splice(index, 1);
     }
 
@@ -69,8 +84,8 @@ const Root: React.FC = function() {
         setSelected(null);
     }
 
-    function selectProject(id: number) {
-        const index = projects.findIndex((p) => p.id == id);
+    function selectProject(_id: string) {
+        const index = projects.findIndex((p) => p._id == _id);
         setSelected(index);
         fs.readFile(projects[index].path + "/README.md", "utf-8", (err, data) => {
             if(err) {
@@ -92,8 +107,8 @@ const Root: React.FC = function() {
         <dl className="uk-description-list uk-description-list-divider uk-padding-small uk-height-1-1 uk-width-medium" style={{overflow: "scroll"}}>
             {
                 projects.map((project: Project) => [
-                <dt key={project.id + "t"} onClick={() => {selectProject(project.id)}} style={{cursor: "default"}}>{project.name}</dt>,
-                <dd key={project.id + "d"} onClick={() => {selectProject(project.id)}} style={{cursor: "default"}}>{project.type} {PackageManager[project.pm]}</dd>])
+                <dt key={project._id + "t"} onClick={() => {selectProject(project._id)}} style={{cursor: "default"}}>{project.name}</dt>,
+                <dd key={project._id + "d"} onClick={() => {selectProject(project._id)}} style={{cursor: "default"}}>{project.type} {PackageManager[project.pm]}</dd>])
             }
         </dl>
         <hr className="uk-divider-vertical uk-height-1-1 uk-margin-remove-vertical"/>
