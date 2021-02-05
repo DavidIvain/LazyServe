@@ -1,4 +1,4 @@
-import { app, BrowserWindow } from 'electron';
+import { app, BrowserWindow, shell } from 'electron';
 declare const MAIN_WINDOW_WEBPACK_ENTRY: any;
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
@@ -19,6 +19,19 @@ const createWindow = (): void => {
   });
   mainWindow.setBackgroundColor('#222')
   // and load the index.html of the app.
+  const handleRedirect = (e: Electron.WillNavigateEvent, url: string) => {
+    if (url !== e.url) {
+      e.preventDefault();
+      const win = new BrowserWindow({
+        height: 600,
+        width: 800,
+      });
+      win.loadURL(url);
+      //shell.openExternal(url);
+    }
+  }
+  // Instead bare webContents:
+  mainWindow.webContents.on('will-navigate', handleRedirect)
   mainWindow.loadURL(MAIN_WINDOW_WEBPACK_ENTRY);
 
   // Open the DevTools.
