@@ -33,7 +33,7 @@ const Root: React.FC = function() {
     }, []);
     
     const renderers = {
-        code: (props: {language: any, value: any}) => {
+        code: (props: {language: string, value: React.ReactNode}) => {
             return <SyntaxHighlighter style={vscDarkPlus} language={props.language} children={props.value} />
         }
     }
