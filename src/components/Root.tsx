@@ -6,6 +6,8 @@ import {Prism as SyntaxHighlighter} from "react-syntax-highlighter";
 import {vscDarkPlus} from "react-syntax-highlighter/dist/esm/styles/prism";
 import fs from "fs";
 import Datastore from "nedb";
+import {exec} from "child_process";
+import process from "process";
 
 import Project, {ProjectType, PackageManager} from "../models/project";
 
@@ -98,6 +100,26 @@ const Root: React.FC = function() {
         });
     }
 
+    function openInEditor(project: Project) {
+        exec("code "+project.path, (err, data, getter) => {
+            if(err) {
+                console.error(err);
+            }
+        })
+    }
+
+    function run(project: Project) {
+        exec('osascript -e "tell application\\"Terminal\\" to do script \\"cd '+project.path+' && yarn serve\\""');
+    }
+
+    function runSelected() {
+        run(projects[selected]);
+    }
+
+    function openInEditorSelected() {
+        openInEditor(projects[selected]);
+    }
+
     return (<>
     <div onDoubleClick={maximizeWindow} className="uk-padding uk-box-shadow-small uk-background-primary uk-light draggable uk-flex uk-flex-between uk-flex-middle">
         <h1 className="uk-logo uk-margin-remove">LazyServe</h1>
@@ -117,8 +139,8 @@ const Root: React.FC = function() {
                 selected != null ? [
                 <h1 className="uk-heading-divider" key="title">{projects[selected].name}</h1>,
                 <div className="uk-button-group" key="buttons">
-                    <button className="uk-button uk-button-primary" style={{backgroundColor: "#32CD32", color: "white"}}>Run</button>
-                    <button className="uk-button uk-button-primary" style={{backgroundColor: "#1e87f0", color: "white"}}>Code</button>
+                    <button className="uk-button uk-button-primary" style={{backgroundColor: "#32CD32", color: "white"}} onClick={runSelected}>Run</button>
+                    <button className="uk-button uk-button-primary" style={{backgroundColor: "#1e87f0", color: "white"}} onClick={openInEditorSelected}>Code</button>
                     <button className="uk-button uk-button-primary">Edit</button>
                     <button className="uk-button uk-button-danger" onClick={removeSelected}>Delete</button>
                 </div>,
